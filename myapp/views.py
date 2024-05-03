@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate, logout
 # from paypal.standard.forms import PayPalPaymentsForm
 from django.conf import settings
+from django.views.generic.list import ListView
 
 def index(request):
     return render(request, 'index.html')
@@ -26,7 +27,7 @@ def contact_us(request):
 def about(request):
     return render(request,'about.html')
 
-def all_dishes(request):
+# def all_dishes(request):
     context={}
     dishes = Dish.objects.all()
     if "q" in request.GET:
@@ -169,3 +170,9 @@ def single_dish(request, id):
         # context.update({'dish':dish, 'form':form})
 
     return render(request,'dish.html', context)
+
+class All_dishes(ListView):
+    model = Dish
+    template_name = "all_dishes.html"
+    context_object_name = 'dishes' 
+    

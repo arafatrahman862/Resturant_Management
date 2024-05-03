@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>FoodZone - A Food Delivery Outlet</title>
+    <title>Arafat's Kitchen</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="Free Website Template" name="keywords">
     <meta content="Free Website Template" name="description">
@@ -45,6 +45,15 @@
                     <a href="{% url 'team' %}" class="nav-item nav-link">Our Team</a>
                     <a href="{% url 'all_dishes' %}" class="nav-item nav-link">Menu</a>
                     <a href="{% url 'contact' %}" class="nav-item nav-link">Contact</a>
+                    <a href="{% url 'register' %}" class="nav-link"><i class="fas fa-user"></i></a>
+                    <!-- {% if user.is_authenticated %}
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown"><i class="fas fa-user"></i></a>
+                        
+                    </div>
+                    {% else %}
+                    <a href="{% url 'register' %}" class="nav-link"><i class="fas fa-user"></i></a>
+                    {% endif %} -->
                  
                 </div>
             </div>

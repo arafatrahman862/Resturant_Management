@@ -1,7 +1,9 @@
 
 from django.contrib import admin
-from django.urls import path
-from myapp import views
+from django.urls import path, include
+from myapp import views 
+from django.conf import settings 
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -10,5 +12,8 @@ urlpatterns = [
     path('about/',views.about,name="about"),
     path('team/',views.team_members,name="team"),
     path('dishes/',views.all_dishes,name="all_dishes"),
+    path('register/',views.register,name="register"),
+    path('login/', views.signin, name='login'),
+    path('check_user_exists/',views.check_user_exists,name="check_user_exist"),
     
 ]

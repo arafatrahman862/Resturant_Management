@@ -38,7 +38,10 @@ def all_dishes(request):
     return render(request,'all_dishes.html', context)
 
 def team_members(request):
-    return render(request,'team.html')
+    context={}
+    members = Team.objects.all().order_by('name')
+    context['team_members'] = members
+    return render(request,'team.html', context)
 
 def register(request):
     context={}
@@ -87,3 +90,82 @@ def check_user_exists(request):
         return JsonResponse({'status':0,'message':'Not Exist'})
     else:
         return JsonResponse({'status':1,'message':'A user with this email already exists!'})
+    
+def dashboard(request):
+    context={}
+    login_user = get_object_or_404(User, id = request.user.id)
+    #fetch login user's details
+    profile = Profile.objects.get(user__id=request.user.id)
+    context['profile'] = profile
+
+    #update profile
+    if "update_profile" in request.POST:
+        print("file=",request.FILES)
+        name = request.POST.get('name')
+        contact = request.POST.get('contact_number')
+        add = request.POST.get('address')
+       
+
+        profile.user.first_name = name 
+        profile.user.save()
+        profile.contact_number = contact 
+        profile.address = add 
+
+        if "profile_pic" in request.FILES:
+            pic = request.FILES['profile_pic']
+            profile.profile_pic = pic
+        profile.save()
+        context['status'] = 'Profile updated successfully!'
+    
+    #Change Password 
+    if "change_pass" in request.POST:
+        c_password = request.POST.get('current_password')
+        n_password = request.POST.get('new_password')
+
+        check = login_user.check_password(c_password)
+        if check==True:
+            login_user.set_password(n_password)
+            login_user.save()
+            login(request, login_user)
+            context['status'] = 'Password Updated Successfully!' 
+        else:
+            context['status'] = 'Current Password Incorrect!'
+
+    #My Orders 
+    orders = Order.objects.filter(customer__user__id=request.user.id).order_by('-id')
+    context['orders']=orders    
+    return render(request, 'dashboard.html', context)
+
+def user_logout(request):
+    logout(request)
+    return HttpResponseRedirect('/')
+
+def single_dish(request, id):
+    context={}
+    dish = get_object_or_404(Dish, id=id)
+
+    if request.user.is_authenticated:
+        cust = get_object_or_404(Profile, user__id = request.user.id)
+        order = Order(customer=cust, item=dish)
+        order.save()
+        inv = f'INV0000-{order.id}'
+
+        paypal_dict = {
+            'business':settings.PAYPAL_RECEIVER_EMAIL,
+            'amount':dish.discounted_price,
+            'item_name':dish.name,
+            'user_id':request.user.id,
+            'invoice':inv,
+            'notify_url':'http://{}{}'.format(settings.HOST, reverse('paypal-ipn')),
+            'return_url':'http://{}{}'.format(settings.HOST,reverse('payment_done')),
+            'cancel_url':'http://{}{}'.format(settings.HOST,reverse('payment_cancel')),
+        }
+
+        order.invoice_id = inv 
+        order.save()
+        request.session['order_id'] = order.id
+
+        # form = PayPalPaymentsForm(initial=paypal_dict)
+        # context.update({'dish':dish, 'form':form})
+
+    return render(request,'dish.html', context)

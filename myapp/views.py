@@ -5,10 +5,22 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate, logout
 # from paypal.standard.forms import PayPalPaymentsForm
 from django.conf import settings
-from django.views.generic.list import ListView
 
 def index(request):
-    return render(request, 'index.html')
+    context ={}
+    cats = Category.objects.all().order_by('name')
+    context['categories'] = cats
+    # print()
+    dishes = []
+    for cat in cats:
+        dishes.append({
+            'cat_id':cat.id,
+            'cat_name':cat.name,
+            'cat_img':cat.image,
+            'items':list(cat.dish_set.all().values())
+        })
+    context['menu'] = dishes
+    return render(request,'index.html', context)
 
 def contact_us(request):
     context={}
@@ -27,7 +39,13 @@ def contact_us(request):
 def about(request):
     return render(request,'about.html')
 
-# def all_dishes(request):
+def team_members(request):
+    context={}
+    members = Team.objects.all().order_by('name')
+    context['team_members'] = members
+    return render(request,'team.html', context)
+
+def all_dishes(request):
     context={}
     dishes = Dish.objects.all()
     if "q" in request.GET:
@@ -38,23 +56,17 @@ def about(request):
     context['dishes'] = dishes
     return render(request,'all_dishes.html', context)
 
-def team_members(request):
-    context={}
-    members = Team.objects.all().order_by('name')
-    context['team_members'] = members
-    return render(request,'team.html', context)
-
 def register(request):
     context={}
     if request.method=="POST":
-        
+        #fetch data from html form
         name = request.POST.get('name')
         email = request.POST.get('email')
         password = request.POST.get('pass')
         contact = request.POST.get('number')
         check = User.objects.filter(username=email)
         if len(check)==0:
-           
+            #Save data to both tables
             usr = User.objects.create_user(email, email, password)
             usr.first_name = name
             usr.save()
@@ -66,6 +78,14 @@ def register(request):
             context['error'] = f"A User with this email already exists"
 
     return render(request,'register.html', context)
+
+def check_user_exists(request):
+    email = request.GET.get('usern')
+    check = User.objects.filter(username=email)
+    if len(check)==0:
+        return JsonResponse({'status':0,'message':'Not Exist'})
+    else:
+        return JsonResponse({'status':1,'message':'A user with this email already exists!'})
 
 def signin(request):
     context={}
@@ -84,14 +104,6 @@ def signin(request):
 
     return render(request,'login.html', context)
 
-def check_user_exists(request):
-    email = request.GET.get('usern')
-    check = User.objects.filter(username=email)
-    if len(check)==0:
-        return JsonResponse({'status':0,'message':'Not Exist'})
-    else:
-        return JsonResponse({'status':1,'message':'A user with this email already exists!'})
-    
 def dashboard(request):
     context={}
     login_user = get_object_or_404(User, id = request.user.id)
@@ -145,34 +157,45 @@ def single_dish(request, id):
     context={}
     dish = get_object_or_404(Dish, id=id)
 
-    if request.user.is_authenticated:
-        cust = get_object_or_404(Profile, user__id = request.user.id)
-        order = Order(customer=cust, item=dish)
-        order.save()
-        inv = f'INV0000-{order.id}'
+    # if request.user.is_authenticated:
+    #     cust = get_object_or_404(Profile, user__id = request.user.id)
+    #     order = Order(customer=cust, item=dish)
+    #     order.save()
+    #     inv = f'INV0000-{order.id}'
 
-        paypal_dict = {
-            'business':settings.PAYPAL_RECEIVER_EMAIL,
-            'amount':dish.discounted_price,
-            'item_name':dish.name,
-            'user_id':request.user.id,
-            'invoice':inv,
-            'notify_url':'http://{}{}'.format(settings.HOST, reverse('paypal-ipn')),
-            'return_url':'http://{}{}'.format(settings.HOST,reverse('payment_done')),
-            'cancel_url':'http://{}{}'.format(settings.HOST,reverse('payment_cancel')),
-        }
+    #     paypal_dict = {
+    #         'business':settings.PAYPAL_RECEIVER_EMAIL,
+    #         'amount':dish.discounted_price,
+    #         'item_name':dish.name,
+    #         'user_id':request.user.id,
+    #         'invoice':inv,
+    #         'notify_url':'http://{}{}'.format(settings.HOST, reverse('paypal-ipn')),
+    #         'return_url':'http://{}{}'.format(settings.HOST,reverse('payment_done')),
+    #         'cancel_url':'http://{}{}'.format(settings.HOST,reverse('payment_cancel')),
+    #     }
 
-        order.invoice_id = inv 
-        order.save()
-        request.session['order_id'] = order.id
+    #     order.invoice_id = inv 
+    #     order.save()
+    #     request.session['order_id'] = order.id
 
         # form = PayPalPaymentsForm(initial=paypal_dict)
         # context.update({'dish':dish, 'form':form})
 
     return render(request,'dish.html', context)
 
-class All_dishes(ListView):
-    model = Dish
-    template_name = "all_dishes.html"
-    context_object_name = 'dishes' 
-    
+# def payment_done(request):
+#     pid = request.GET.get('PayerID')
+#     order_id = request.session.get('order_id')
+#     order_obj = Order.objects.get(id=order_id)
+#     order_obj.status=True 
+#     order_obj.payer_id = pid
+#     order_obj.save()
+
+#     return render(request, 'payment_successfull.html') 
+
+# def payment_cancel(request):
+#     ## remove comment to delete cancelled order
+#     # order_id = request.session.get('order_id')
+#     # Order.objects.get(id=order_id).delete()
+
+#     return render(request, 'payment_failed.html') 
